@@ -2,9 +2,10 @@
 import 'dart:math';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import '../models/challenge.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class MapboxService {
-  static const String ACCESS_TOKEN = String.fromEnvironment("ACCESS_TOKEN");
+  static  String ACCESS_TOKEN = dotenv.env["MAPBOX_ACCESS_TOKEN"] ?? "";
 
   // Génère un lieu aléatoire pour le jeu
   static Challenge generateRandomLocation() {
