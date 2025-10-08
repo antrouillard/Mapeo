@@ -9,6 +9,7 @@ class MapboxService {
   // Génère un lieu aléatoire pour le jeu
   static Challenge generateRandomLocation() {
     final random = Random();
+    MapboxOptions.setAccessToken(ACCESS_TOKEN);
 
     // Quelques lieux intéressants pour commencer
     final List<Challenge> locations = [

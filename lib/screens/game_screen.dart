@@ -13,12 +13,15 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> {
   MapboxMap? _mapboxMap;
+  PointAnnotationManager? _annotationManager;
   Challenge? _currentChallenge;
   Point? _guessLocation;
   bool _hasGuessed = false;
   int _currentScore = 0;
   int _roundNumber = 1;
   final int _maxRounds = 5;
+  final TextEditingController _cityController = TextEditingController();
+  final TextEditingController _countryController = TextEditingController();
 
   @override
   void initState() {
@@ -26,17 +29,30 @@ class _GameScreenState extends State<GameScreen> {
     _loadNewChallenge();
   }
 
+  @override
+  void dispose() {
+    _cityController.dispose();
+    _countryController.dispose();
+    super.dispose();
+  }
+
   void _loadNewChallenge() {
     setState(() {
       _currentChallenge = MapboxService.generateRandomLocation();
       _guessLocation = null;
       _hasGuessed = false;
+      _cityController.clear();
+      _countryController.clear();
     });
+
+    _annotationManager?.deleteAll();
   }
 
-  void _onMapCreated(MapboxMap mapboxMap) {
+  void _onMapCreated(MapboxMap mapboxMap) async {
     _mapboxMap = mapboxMap;
+    _annotationManager = await mapboxMap.annotations.createPointAnnotationManager();
     _centerMapOnChallenge();
+
   }
 
   void _centerMapOnChallenge() {
@@ -53,34 +69,43 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
-  void _onMapTap(Point point) {
+
+  void _onMapTap(MapContentGestureContext context) {
     if (_hasGuessed) return;
 
-    setState(() {
-      _guessLocation = point;
+    _mapboxMap?.coordinateForPixel(context.touchPosition).then((point) {
+      setState(() {
+        _guessLocation = point;
+      });
+      _addGuessMarker(point);
     });
-
-    // Ajouter un marqueur sur la carte
-    _addMarker(point);
   }
 
-  void _addMarker(Point point) async {
-    if (_mapboxMap == null) return;
+  void _addGuessMarker(Point point) async {
+    if (_annotationManager == null) return;
 
-    final pointAnnotationManager = await _mapboxMap!.annotations
-        .createPointAnnotationManager();
+    await _annotationManager!.deleteAll();
 
-    pointAnnotationManager.create(
+    _annotationManager!.create(
       PointAnnotationOptions(
         geometry: point,
         iconImage: "default_marker",
         iconSize: 1.5,
+        iconColor: Colors.red.value,
       ),
     );
   }
 
   void _submitGuess() {
-    if (_guessLocation == null || _currentChallenge == null) return;
+    if (_guessLocation == null || _currentChallenge == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Veuillez placer un marqueur sur la carte'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
 
     final distance = MapboxService.calculateDistance(
       _currentChallenge!.latitude,
@@ -96,8 +121,30 @@ class _GameScreenState extends State<GameScreen> {
       _currentScore += score;
     });
 
+    _addCorrectAnswerMarker();
+
     // Afficher le résultat
     _showResultDialog(distance, score);
+  }
+
+  void _addCorrectAnswerMarker() async {
+    if (_annotationManager == null || _currentChallenge == null) return;
+
+    final correctPoint = Point(
+      coordinates: Position(
+        _currentChallenge!.longitude,
+        _currentChallenge!.latitude,
+      ),
+    );
+
+    _annotationManager!.create(
+      PointAnnotationOptions(
+        geometry: correctPoint,
+        iconImage: "default_marker",
+        iconSize: 1.5,
+        iconColor: Colors.green.value,
+      ),
+    );
   }
 
   void _showResultDialog(double distance, int score) {
@@ -121,6 +168,33 @@ class _GameScreenState extends State<GameScreen> {
               '${_currentChallenge!.correctCountry}',
               textAlign: TextAlign.center,
               style: const TextStyle(fontStyle: FontStyle.italic),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 20,
+                  height: 20,
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Text('Votre réponse'),
+                const SizedBox(width: 20),
+                Container(
+                  width: 20,
+                  height: 20,
+                  decoration: const BoxDecoration(
+                    color: Colors.green,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Text('Réponse correcte'),
+              ],
             ),
           ],
         ),
@@ -220,10 +294,56 @@ class _GameScreenState extends State<GameScreen> {
               children: [
                 MapWidget(
                   key: ValueKey(_currentChallenge),
-                  styleUri: MapboxStyles.MAPBOX_STREETS, // Utilisez votre style personnalisé ici
+                  styleUri: 'mapbox://styles/jeremyretille/cmghmue0j002h01r15n8z3xpu',
                   onMapCreated: _onMapCreated,
                   onTapListener: _onMapTap,
                 ),
+                if (!_hasGuessed)
+                  Positioned(
+                    top: 20,
+                    left: 20,
+                    right: 20,
+                    child: Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Où pensez-vous être ?',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Cliquez sur la carte pour placer un marqueur',
+                              style: TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                            if (_guessLocation != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8.0),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.location_on, color: Colors.red, size: 16),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Marqueur placé',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.green[700],
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 if (!_hasGuessed && _guessLocation != null)
                   Positioned(
                     bottom: 20,
@@ -243,7 +363,7 @@ class _GameScreenState extends State<GameScreen> {
                     ),
                   ),
               ],
-            ),
+      ),
     );
   }
 }
