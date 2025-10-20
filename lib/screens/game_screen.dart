@@ -12,16 +12,31 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> {
+  // Contrôleur de la carte Mapbox
   MapboxMap? _mapboxMap;
+
+  // Gestionnaire des marqueurs (annotations)
   PointAnnotationManager? _annotationManager;
+
+  // Défi actuel (lieu à deviner)
   Challenge? _currentChallenge;
+
+  // Position du guess de l'utilisateur
   Point? _guessLocation;
+
+  // État du jeu
   bool _hasGuessed = false;
   int _currentScore = 0;
   int _roundNumber = 1;
   final int _maxRounds = 5;
+
+  // Contrôleurs des champs de texte (non utilisés actuellement)
   final TextEditingController _cityController = TextEditingController();
   final TextEditingController _countryController = TextEditingController();
+
+  // Références aux annotations pour pouvoir les gérer individuellement
+  PointAnnotation? _guessAnnotation;
+  PointAnnotation? _correctAnnotation;
 
   @override
   void initState() {
@@ -36,6 +51,7 @@ class _GameScreenState extends State<GameScreen> {
     super.dispose();
   }
 
+  /// Charge un nouveau défi (lieu aléatoire)
   void _loadNewChallenge() {
     setState(() {
       _currentChallenge = MapboxService.generateRandomLocation();
@@ -43,18 +59,22 @@ class _GameScreenState extends State<GameScreen> {
       _hasGuessed = false;
       _cityController.clear();
       _countryController.clear();
+      _guessAnnotation = null;
+      _correctAnnotation = null;
     });
 
+    // Supprime tous les marqueurs au début d'un nouveau challenge
     _annotationManager?.deleteAll();
   }
 
+  /// Callback appelé quand la carte est créée
   void _onMapCreated(MapboxMap mapboxMap) async {
     _mapboxMap = mapboxMap;
     _annotationManager = await mapboxMap.annotations.createPointAnnotationManager();
     _centerMapOnChallenge();
-
   }
 
+  /// Centre la caméra sur le lieu du défi
   void _centerMapOnChallenge() {
     if (_mapboxMap != null && _currentChallenge != null) {
       _mapboxMap!.setCamera(CameraOptions(
@@ -69,8 +89,9 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
-
+  /// Callback appelé quand l'utilisateur tape sur la carte
   void _onMapTap(MapContentGestureContext context) {
+    // Ne pas permettre de changer le guess après validation
     if (_hasGuessed) return;
 
     _mapboxMap?.coordinateForPixel(context.touchPosition).then((point) {
@@ -81,22 +102,29 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
+  /// Ajoute un marqueur rouge à l'endroit où l'utilisateur a cliqué (son guess)
   void _addGuessMarker(Point point) async {
     if (_annotationManager == null) return;
 
-    await _annotationManager!.deleteAll();
+    // Supprimer l'ancien marqueur de guess s'il existe
+    if (_guessAnnotation != null) {
+      _annotationManager!.delete(_guessAnnotation!);
+    }
 
-    _annotationManager!.create(
+    // Créer le nouveau marqueur rouge
+    _guessAnnotation = await _annotationManager!.create(
       PointAnnotationOptions(
         geometry: point,
         iconImage: "default_marker",
         iconSize: 1.5,
-        iconColor: Colors.red.value,
+        iconColor: Colors.red.toARGB32(),
       ),
     );
   }
 
+  /// Valide le guess de l'utilisateur et affiche le résultat
   void _submitGuess() {
+    // Vérifier qu'un marqueur a été placé
     if (_guessLocation == null || _currentChallenge == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -107,6 +135,7 @@ class _GameScreenState extends State<GameScreen> {
       return;
     }
 
+    // Calculer la distance entre le guess et la bonne réponse
     final distance = MapboxService.calculateDistance(
       _currentChallenge!.latitude,
       _currentChallenge!.longitude,
@@ -114,6 +143,7 @@ class _GameScreenState extends State<GameScreen> {
       _guessLocation!.coordinates.lng.toDouble(),
     );
 
+    // Calculer le score en fonction de la distance
     final score = MapboxService.calculateScore(distance);
 
     setState(() {
@@ -121,12 +151,14 @@ class _GameScreenState extends State<GameScreen> {
       _currentScore += score;
     });
 
+    // Afficher le marqueur vert (bonne réponse)
     _addCorrectAnswerMarker();
 
-    // Afficher le résultat
+    // Afficher le dialogue de résultat
     _showResultDialog(distance, score);
   }
 
+  /// Ajoute un marqueur vert au bon emplacement (révélation de la réponse)
   void _addCorrectAnswerMarker() async {
     if (_annotationManager == null || _currentChallenge == null) return;
 
@@ -137,12 +169,12 @@ class _GameScreenState extends State<GameScreen> {
       ),
     );
 
-    _annotationManager!.create(
+    _correctAnnotation = await _annotationManager!.create(
       PointAnnotationOptions(
         geometry: correctPoint,
         iconImage: "default_marker",
         iconSize: 1.5,
-        iconColor: Colors.green.value,
+        iconColor: Colors.green.toARGB32(),
       ),
     );
   }
@@ -272,7 +304,7 @@ class _GameScreenState extends State<GameScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Round $_roundNumber/$_maxRounds'),
+        title: Text('Mapeo - Round $_roundNumber/$_maxRounds'),
         actions: [
           Padding(
             padding: const EdgeInsets.all(16.0),
