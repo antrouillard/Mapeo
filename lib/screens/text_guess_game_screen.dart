@@ -30,6 +30,9 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
   // Position de la réponse géocodée à partir du texte
   Point? _guessLocation;
 
+  // Informations détaillées du geocoding (pour mode EASY)
+  String _guessedCountry = '';
+
   // État du jeu
   bool _hasGuessed = false;
   int _currentScore = 0;
@@ -59,9 +62,14 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
   }
 
   /// Charge un nouveau défi (lieu aléatoire)
-  void _loadNewChallenge() {
+  void _loadNewChallenge() async {
+    // Générer un challenge depuis la base de données
+    final challenge = await Challenge.random(
+      onlyCapitals: widget.config.difficulty == Difficulty.medium,
+    );
+
     setState(() {
-      _currentChallenge = MapboxService.generateRandomLocation();
+      _currentChallenge = challenge;
       _guessLocation = null;
       _hasGuessed = false;
       _guessController.clear();
@@ -72,6 +80,31 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
 
     // Supprime tous les marqueurs au début d'un nouveau challenge
     _annotationManager?.deleteAll();
+
+    // Ajouter le marqueur pour montrer l'endroit à deviner
+    _addChallengeMarker();
+  }
+
+  /// Ajoute un marqueur rouge à l'endroit à deviner
+  /// Cela permet de voir où se trouve le lieu même en dézoomant
+  void _addChallengeMarker() async {
+    if (_annotationManager == null || _currentChallenge == null) return;
+
+    final challengePoint = Point(
+      coordinates: Position(
+        _currentChallenge!.longitude,
+        _currentChallenge!.latitude,
+      ),
+    );
+
+    await _annotationManager!.create(
+      PointAnnotationOptions(
+        geometry: challengePoint,
+        iconImage: "default_marker",
+        iconSize: 1.5,
+        iconColor: Colors.red.toARGB32(),
+      ),
+    );
   }
 
   /// Callback appelé quand la carte est créée
@@ -106,11 +139,9 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
       case MapStyle.classic:
         return 'mapbox://styles/jeremyretille/cmghmue0j002h01r15n8z3xpu';
       case MapStyle.blackAndWhite:
-        // TODO: Créer un style noir et blanc sur Mapbox Studio
-        return 'mapbox://styles/mapbox/light-v11';
+        return 'mapbox://styles/jeremyretille/cmh0bd4rj000a01qt2aw15qe0';
       case MapStyle.noBorders:
-        // TODO: Créer un style sans frontières sur Mapbox Studio
-        return 'mapbox://styles/jeremyretille/cmghmue0j002h01r15n8z3xpu';
+        return 'mapbox://styles/jeremyretille/cmh0b1xx5009y01sa770d3e41';
       case MapStyle.satellite:
         return 'mapbox://styles/mapbox/satellite-v9';
     }
@@ -135,12 +166,12 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
     });
 
     try {
-      // Appeler l'API Google Geocoding
-      final point = await GoogleGeocodingService.geocodeAddress(query);
+      // Utiliser geocodeAddressDetailed pour obtenir le pays
+      final result = await GoogleGeocodingService.geocodeAddressDetailed(query);
 
       if (!mounted) return;
 
-      if (point == null) {
+      if (result == null) {
         setState(() {
           _isGeocoding = false;
         });
@@ -154,12 +185,13 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
       }
 
       setState(() {
-        _guessLocation = point;
+        _guessLocation = result.point;
+        _guessedCountry = result.country;
         _isGeocoding = false;
       });
 
       // Ajouter un marqueur bleu pour la réponse
-      _addGuessMarker(point);
+      _addGuessMarker(result.point);
 
       // Afficher une confirmation
       ScaffoldMessenger.of(context).showSnackBar(
@@ -207,7 +239,7 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
   }
 
   /// Valide le guess de l'utilisateur et affiche le résultat
-  void _submitGuess() {
+  void _submitGuess() async {
     // Vérifier qu'un lieu a été géocodé
     if (_guessLocation == null || _currentChallenge == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -219,16 +251,56 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
       return;
     }
 
-    // Calculer la distance entre le guess et la bonne réponse
-    final distance = MapboxService.calculateDistance(
-      _currentChallenge!.latitude,
-      _currentChallenge!.longitude,
-      _guessLocation!.coordinates.lat.toDouble(),
-      _guessLocation!.coordinates.lng.toDouble(),
-    );
+    int score = 0;
+    double distance = 0;
 
-    // Calculer le score en fonction de la distance
-    final score = MapboxService.calculateScore(distance);
+    // Mode EASY : Seul le pays compte
+    if (widget.config.difficulty == Difficulty.easy) {
+      // Vérifier si le pays est correct
+      final correctCountry = _currentChallenge!.correctCountry.toLowerCase();
+      final guessedCountry = _guessedCountry.toLowerCase();
+
+      if (correctCountry == guessedCountry) {
+        // Bon pays = 1000 points
+        score = 1000;
+        distance = 0;
+      } else {
+        // Mauvais pays : calculer la distance entre les capitales pour donner des points partiels
+        distance = MapboxService.calculateDistance(
+          _currentChallenge!.latitude,
+          _currentChallenge!.longitude,
+          _guessLocation!.coordinates.lat.toDouble(),
+          _guessLocation!.coordinates.lng.toDouble(),
+        );
+
+        // Score basé sur la distance : pays proche = plus de points
+        // Distance < 1000 km = 500 pts
+        // Distance < 3000 km = 300 pts
+        // Distance < 5000 km = 150 pts
+        // Distance < 10000 km = 50 pts
+        // Distance > 10000 km = 0 pts
+        if (distance < 1000) {
+          score = 500;
+        } else if (distance < 3000) {
+          score = 300;
+        } else if (distance < 5000) {
+          score = 150;
+        } else if (distance < 10000) {
+          score = 50;
+        } else {
+          score = 0;
+        }
+      }
+    } else {
+      // Modes MEDIUM et HARD : système de points normal basé sur la distance
+      distance = MapboxService.calculateDistance(
+        _currentChallenge!.latitude,
+        _currentChallenge!.longitude,
+        _guessLocation!.coordinates.lat.toDouble(),
+        _guessLocation!.coordinates.lng.toDouble(),
+      );
+      score = MapboxService.calculateScore(distance);
+    }
 
     setState(() {
       _hasGuessed = true;
@@ -264,6 +336,11 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
   }
 
   void _showResultDialog(double distance, int score) {
+    // Vérifier si c'est le mode EASY et si le pays est correct
+    final isEasyMode = widget.config.difficulty == Difficulty.easy;
+    final isCountryCorrect = isEasyMode &&
+        _currentChallenge!.correctCountry.toLowerCase() == _guessedCountry.toLowerCase();
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -272,12 +349,55 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'Vous étiez à ${distance.toStringAsFixed(1)} km !',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+            // En mode EASY, afficher d'abord si le pays est correct
+            if (isEasyMode) ...[
+              Icon(
+                isCountryCorrect ? Icons.check_circle : Icons.cancel,
+                size: 64,
+                color: isCountryCorrect ? Colors.green : Colors.red,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                isCountryCorrect ? '🎉 Bon pays !' : '❌ Mauvais pays',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: isCountryCorrect ? Colors.green : Colors.red,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Pays géocodé: $_guessedCountry',
+                style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Pays correct: ${_currentChallenge!.correctCountry}',
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+              if (!isCountryCorrect && distance > 0) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Distance entre les pays: ${distance.toStringAsFixed(0)} km',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                ),
+              ],
+            ] else ...[
+              // Mode normal : afficher la distance
+              Text(
+                'Vous étiez à ${distance.toStringAsFixed(1)} km !',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ],
             const SizedBox(height: 10),
-            Text('Score: $score points'),
+            Text(
+              'Score: $score points',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: score >= 500 ? Colors.green : Colors.orange,
+              ),
+            ),
             const SizedBox(height: 10),
             Text(
               'Réponse: ${_currentChallenge!.correctCity}, '
@@ -294,33 +414,35 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
                 color: Colors.grey[700],
               ),
             ),
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 20,
-                  height: 20,
-                  decoration: const BoxDecoration(
-                    color: Colors.blue,
-                    shape: BoxShape.circle,
+            if (!isEasyMode) ...[
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 20,
+                    height: 20,
+                    decoration: const BoxDecoration(
+                      color: Colors.blue,
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                const Text('Votre réponse'),
-                const SizedBox(width: 20),
-                Container(
-                  width: 20,
-                  height: 20,
-                  decoration: const BoxDecoration(
-                    color: Colors.green,
-                    shape: BoxShape.circle,
+                  const SizedBox(width: 8),
+                  const Text('Votre réponse', style: TextStyle(fontSize: 12)),
+                  const SizedBox(width: 20),
+                  Container(
+                    width: 20,
+                    height: 20,
+                    decoration: const BoxDecoration(
+                      color: Colors.green,
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                const Text('Réponse correcte'),
-              ],
-            ),
+                  const SizedBox(width: 8),
+                  const Text('Réponse correcte', style: TextStyle(fontSize: 12)),
+                ],
+              ),
+            ],
           ],
         ),
         actions: [
