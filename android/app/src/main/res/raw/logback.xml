@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Niveau de log global (ERROR pour ne voir que les erreurs critiques) -->
+    <root level="ERROR">
+        <appender-ref ref="CONSOLE" />
+    </root>
+
+    <!-- Désactiver spécifiquement les logs MapBox -->
+    <logger name="com.mapbox" level="ERROR" />
+    <logger name="mapbox-maps-flutter" level="ERROR" />
+    <logger name="Mbgl" level="ERROR" />
+
+    <!-- Désactiver les logs Android de bas niveau -->
+    <logger name="Surface" level="ERROR" />
+    <logger name="FrameEvents" level="ERROR" />
+    <logger name="ImageReader_JNI" level="ERROR" />
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+</configuration>
+

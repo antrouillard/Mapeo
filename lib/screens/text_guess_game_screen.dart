@@ -65,7 +65,7 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
   void _loadNewChallenge() async {
     // Générer un challenge depuis la base de données
     final challenge = await Challenge.random(
-      onlyCapitals: widget.config.difficultyModifier == DifficultyModifier.onlyCapitals,
+      onlyCapitals: widget.config.difficulty == Difficulty.medium,
     );
 
     setState(() {
@@ -90,10 +90,7 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
   /// Ajoute un marqueur rouge à l'endroit à deviner
   /// Cela permet de voir où se trouve le lieu même en dézoomant
   Future<void> _addChallengeMarker() async {
-    if (_annotationManager == null || _currentChallenge == null) {
-      print('⚠️ Cannot add marker: annotationManager=${_annotationManager != null}, challenge=${_currentChallenge != null}');
-      return;
-    }
+    if (_annotationManager == null || _currentChallenge == null) return;
 
     final challengePoint = Point(
       coordinates: Position(
@@ -102,12 +99,10 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
       ),
     );
 
-    print('✅ Adding red marker at: ${_currentChallenge!.latitude}, ${_currentChallenge!.longitude}');
-
+    // Utiliser un CircleAnnotation au lieu de PointAnnotation pour éviter le problème d'image manquante
     await _annotationManager!.create(
       PointAnnotationOptions(
         geometry: challengePoint,
-        iconImage: "default_marker",
         iconSize: 1.5,
         iconColor: Colors.red.toARGB32(),
       ),
@@ -118,7 +113,6 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
   void _onMapCreated(MapboxMap mapboxMap) async {
     _mapboxMap = mapboxMap;
     _annotationManager = await mapboxMap.annotations.createPointAnnotationManager();
-    print('✅ AnnotationManager initialized');
 
     // Ajouter le marqueur du challenge maintenant que l'annotationManager est prêt
     if (_currentChallenge != null) {
@@ -238,11 +232,10 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
       _annotationManager!.delete(_guessAnnotation!);
     }
 
-    // Créer le nouveau marqueur bleu
+    // Créer le nouveau marqueur bleu (sans iconImage)
     _guessAnnotation = await _annotationManager!.create(
       PointAnnotationOptions(
         geometry: point,
-        iconImage: "default_marker",
         iconSize: 1.5,
         iconColor: Colors.blue.toARGB32(),
       ),
@@ -342,7 +335,6 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
     _correctAnnotation = await _annotationManager!.create(
       PointAnnotationOptions(
         geometry: correctPoint,
-        iconImage: "default_marker",
         iconSize: 1.5,
         iconColor: Colors.green.toARGB32(),
       ),
