@@ -1,4 +1,5 @@
 import '../database/database_helper.dart';
+import '../services/mapbox_service.dart';
 
 class Challenge {
   final double latitude;
@@ -30,7 +31,7 @@ class Challenge {
     );
 
     if (location == null) return null;
-
+    MapboxService.setMapboxToken();
     return Challenge(
       latitude: location['latitude'] as double,
       longitude: location['longitude'] as double,

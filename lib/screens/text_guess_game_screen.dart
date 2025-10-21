@@ -65,7 +65,7 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
   void _loadNewChallenge() async {
     // Générer un challenge depuis la base de données
     final challenge = await Challenge.random(
-      onlyCapitals: widget.config.difficulty == Difficulty.medium,
+      onlyCapitals: widget.config.difficultyModifier == DifficultyModifier.onlyCapitals,
     );
 
     setState(() {
@@ -81,14 +81,19 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
     // Supprime tous les marqueurs au début d'un nouveau challenge
     _annotationManager?.deleteAll();
 
-    // Ajouter le marqueur pour montrer l'endroit à deviner
-    _addChallengeMarker();
+    // Ajouter le marqueur seulement si l'annotationManager est déjà initialisé
+    if (_annotationManager != null) {
+      await _addChallengeMarker();
+    }
   }
 
   /// Ajoute un marqueur rouge à l'endroit à deviner
   /// Cela permet de voir où se trouve le lieu même en dézoomant
-  void _addChallengeMarker() async {
-    if (_annotationManager == null || _currentChallenge == null) return;
+  Future<void> _addChallengeMarker() async {
+    if (_annotationManager == null || _currentChallenge == null) {
+      print('⚠️ Cannot add marker: annotationManager=${_annotationManager != null}, challenge=${_currentChallenge != null}');
+      return;
+    }
 
     final challengePoint = Point(
       coordinates: Position(
@@ -96,6 +101,8 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
         _currentChallenge!.latitude,
       ),
     );
+
+    print('✅ Adding red marker at: ${_currentChallenge!.latitude}, ${_currentChallenge!.longitude}');
 
     await _annotationManager!.create(
       PointAnnotationOptions(
@@ -111,6 +118,13 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
   void _onMapCreated(MapboxMap mapboxMap) async {
     _mapboxMap = mapboxMap;
     _annotationManager = await mapboxMap.annotations.createPointAnnotationManager();
+    print('✅ AnnotationManager initialized');
+
+    // Ajouter le marqueur du challenge maintenant que l'annotationManager est prêt
+    if (_currentChallenge != null) {
+      await _addChallengeMarker();
+    }
+
     _centerMapOnChallenge();
   }
 

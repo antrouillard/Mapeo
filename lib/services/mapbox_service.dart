@@ -7,16 +7,17 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 /// Service pour gérer les fonctionnalités Mapbox et la logique du jeu
 class MapboxService {
   // Token d'accès Mapbox (défini dans le fichier .env)
-  static  String ACCESS_TOKEN = dotenv.env["MAPBOX_ACCESS_TOKEN"] ?? "";
+  static String ACCESS_TOKEN = dotenv.env["MAPBOX_ACCESS_TOKEN"] ?? "";
 
   /// Génère un défi aléatoire (lieu à deviner)
   ///
   /// Pour l'instant, tire aléatoirement parmi une liste fixe de lieux célèbres.
   /// TODO: Améliorer avec un vrai tirage aléatoire mondial + reverse geocoding
   /// pour obtenir automatiquement le nom de la ville et du pays.
+
   static Challenge generateRandomLocation() {
     final random = Random();
-    MapboxOptions.setAccessToken(ACCESS_TOKEN);
+
 
     // Liste de lieux célèbres pour les défis
     // Format: latitude, longitude, pays, ville
@@ -67,12 +68,10 @@ class MapboxService {
   /// - [lat2], [lon2] : Coordonnées du second point
   ///
   /// Retourne la distance en kilomètres.
-  static double calculateDistance(
-    double lat1,
-    double lon1,
-    double lat2,
-    double lon2,
-  ) {
+  static double calculateDistance(double lat1,
+      double lon1,
+      double lat2,
+      double lon2,) {
     // Rayon de la Terre en kilomètres
     const double earthRadius = 6371; // km
 
@@ -120,5 +119,10 @@ class MapboxService {
     if (distanceKm < 3000) return 200;
     if (distanceKm < 5000) return 100;
     return 50;
+  }
+
+  /// Initialise le token Mapbox pour l'application
+  static setMapboxToken() {
+    MapboxOptions.setAccessToken(ACCESS_TOKEN);
   }
 }

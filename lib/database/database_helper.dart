@@ -2,9 +2,12 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Helper pour gérer la base de données SQLite
 class DatabaseHelper {
+
+  static  String ACCESS_TOKEN = dotenv.env["MAPBOX_ACCESS_TOKEN"] ?? "";
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
 
