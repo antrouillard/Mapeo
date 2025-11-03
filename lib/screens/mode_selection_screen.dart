@@ -708,7 +708,7 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen> {
       gameScreen = TextGuessGameScreen(config: config);
     } else {
       // Mode Guess sur Map (pour l'instant utilise l'écran existant)
-      gameScreen = const GameScreen();
+      gameScreen = GameScreen(config: config);
     }
 
     Navigator.push(

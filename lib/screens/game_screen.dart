@@ -1,11 +1,15 @@
 // lib/screens/game_screen.dart
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+import 'dart:async';
 import '../services/mapbox_service.dart';
 import '../models/challenge.dart';
+import '../models/game_mode.dart';
 
 class GameScreen extends StatefulWidget {
-  const GameScreen({Key? key}) : super(key: key);
+  final GameConfiguration? config;
+
+  const GameScreen({Key? key, this.config}) : super(key: key);
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -38,6 +42,12 @@ class _GameScreenState extends State<GameScreen> {
   PointAnnotation? _guessAnnotation;
   PointAnnotation? _correctAnnotation;
 
+  // === Fields for TIMER mode ===
+  Timer? _roundTimer;
+  int _remainingSeconds = 0;
+  bool get _timerEnabled => widget.config?.timerEnabled ?? false;
+  int get _timerDuration => widget.config?.timerDuration ?? 60;
+
   @override
   void initState() {
     super.initState();
@@ -48,6 +58,7 @@ class _GameScreenState extends State<GameScreen> {
   void dispose() {
     _cityController.dispose();
     _countryController.dispose();
+    _cancelTimer();
     super.dispose();
   }
 
@@ -65,6 +76,68 @@ class _GameScreenState extends State<GameScreen> {
 
     // Supprime tous les marqueurs au début d'un nouveau challenge
     _annotationManager?.deleteAll();
+
+    // Timer handling: cancel previous and start if enabled
+    _cancelTimer();
+    if (_timerEnabled) {
+      _startTimer();
+    }
+  }
+
+  // === Timer helpers ===
+  void _startTimer() {
+    _cancelTimer();
+    setState(() {
+      _remainingSeconds = _timerDuration;
+    });
+
+    _roundTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+      setState(() {
+        _remainingSeconds--;
+      });
+
+      if (_remainingSeconds <= 0) {
+        _onTimerExpired();
+      }
+    });
+  }
+
+  void _cancelTimer() {
+    _roundTimer?.cancel();
+    _roundTimer = null;
+  }
+
+  void _onTimerExpired() {
+    _cancelTimer();
+
+    if (!mounted) return;
+
+    // Si l'utilisateur n'a pas deviné, terminer le round avec 0 point
+    if (!_hasGuessed) {
+      setState(() {
+        _hasGuessed = true;
+      });
+
+      // Montrer la bonne réponse
+      _addCorrectAnswerMarker();
+
+      // Afficher un dialogue indiquant que le temps est écoulé
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: const Text('Temps écoulé !'),
+          content: const Text('Vous n\'avez pas répondu à temps. 0 point pour ce round.'),
+          actions: [
+            TextButton(
+              onPressed: _nextRound,
+              child: const Text('Round suivant'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   /// Callback appelé quand la carte est créée
@@ -115,7 +188,6 @@ class _GameScreenState extends State<GameScreen> {
     _guessAnnotation = await _annotationManager!.create(
       PointAnnotationOptions(
         geometry: point,
-        iconImage: "default_marker",
         iconSize: 1.5,
         iconColor: Colors.red.toARGB32(),
       ),
@@ -172,7 +244,6 @@ class _GameScreenState extends State<GameScreen> {
     _correctAnnotation = await _annotationManager!.create(
       PointAnnotationOptions(
         geometry: correctPoint,
-        iconImage: "default_marker",
         iconSize: 1.5,
         iconColor: Colors.green.toARGB32(),
       ),
@@ -391,6 +462,30 @@ class _GameScreenState extends State<GameScreen> {
                       child: const Text(
                         'Valider ma réponse',
                         style: TextStyle(fontSize: 18),
+                      ),
+                    ),
+                  ),
+                // Affichage du timer
+                if (_timerEnabled)
+                  Positioned(
+                    top: 80,
+                    right: 20,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.timer, color: Colors.white, size: 16),
+                          const SizedBox(width: 4),
+                          Text(
+                            '$_remainingSeconds s',
+                            style: const TextStyle(color: Colors.white, fontSize: 16),
+                          ),
+                        ],
                       ),
                     ),
                   ),

@@ -1,6 +1,7 @@
 // lib/screens/text_guess_game_screen.dart
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+import 'dart:async';
 import '../services/mapbox_service.dart';
 import '../services/google_geocoding_service.dart';
 import '../models/challenge.dart';
@@ -49,6 +50,12 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
   // État du géocodage
   bool _isGeocoding = false;
 
+  // === Timer fields ===
+  Timer? _roundTimer;
+  int _remainingSeconds = 0;
+  bool get _timerEnabled => widget.config.timerEnabled;
+  int get _timerDuration => widget.config.timerDuration;
+
   @override
   void initState() {
     super.initState();
@@ -58,6 +65,7 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
   @override
   void dispose() {
     _guessController.dispose();
+    _cancelTimer();
     super.dispose();
   }
 
@@ -81,9 +89,66 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
     // Supprime tous les marqueurs au début d'un nouveau challenge
     _annotationManager?.deleteAll();
 
+    // Timer handling: cancel previous and start if enabled
+    _cancelTimer();
+    if (_timerEnabled) {
+      _startTimer();
+    }
+
     // Ajouter le marqueur seulement si l'annotationManager est déjà initialisé
     if (_annotationManager != null) {
       await _addChallengeMarker();
+    }
+  }
+
+  // === Timer helpers ===
+  void _startTimer() {
+    _cancelTimer();
+    setState(() {
+      _remainingSeconds = _timerDuration;
+    });
+
+    _roundTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+      setState(() {
+        _remainingSeconds--;
+      });
+
+      if (_remainingSeconds <= 0) {
+        _onTimerExpired();
+      }
+    });
+  }
+
+  void _cancelTimer() {
+    _roundTimer?.cancel();
+    _roundTimer = null;
+  }
+
+  void _onTimerExpired() {
+    _cancelTimer();
+    if (!mounted) return;
+
+    if (!_hasGuessed) {
+      setState(() {
+        _hasGuessed = true;
+      });
+
+      // Montrer la bonne réponse
+      _addCorrectAnswerMarker();
+
+      // Afficher un dialogue indiquant que le temps est écoulé
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: const Text('Temps écoulé !'),
+          content: const Text('Vous n\'avez pas répondu à temps. 0 point pour ce round.'),
+          actions: [
+            TextButton(onPressed: _nextRound, child: const Text('Round suivant')),
+          ],
+        ),
+      );
     }
   }
 
@@ -313,6 +378,9 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
       _hasGuessed = true;
       _currentScore += score;
     });
+
+    // Annuler le timer pour éviter double actions
+    _cancelTimer();
 
     // Afficher le marqueur vert (bonne réponse)
     _addCorrectAnswerMarker();
@@ -548,10 +616,32 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
                 // Carte (prend la majorité de l'écran)
                 Expanded(
                   flex: 3,
-                  child: MapWidget(
-                    key: ValueKey(_currentChallenge),
-                    styleUri: _getMapStyleUri(),
-                    onMapCreated: _onMapCreated,
+                  child: Stack(
+                    children: [
+                      MapWidget(
+                        key: ValueKey(_currentChallenge),
+                        styleUri: _getMapStyleUri(),
+                        onMapCreated: _onMapCreated,
+                      ),
+                      if (_timerEnabled && !_hasGuessed)
+                        Positioned(
+                          top: 12,
+                          right: 12,
+                          child: Card(
+                            color: Colors.black54,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.timer, color: Colors.white, size: 16),
+                                  const SizedBox(width: 6),
+                                  Text('$_remainingSeconds s', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
 
