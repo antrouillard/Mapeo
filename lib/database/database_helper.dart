@@ -20,6 +20,12 @@ class DatabaseHelper {
     return _database!;
   }
 
+  /// Récupère le chemin complet de la base de données
+  Future<String> getDatabasePath() async {
+    final dbPath = await getDatabasesPath();
+    return join(dbPath, 'mapeo_locations.db');
+  }
+
   /// Initialise la base de données
   Future<Database> _initDB(String filePath) async {
     final dbPath = await getDatabasesPath();
@@ -27,8 +33,9 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
+      onUpgrade: _onUpgrade, // Ajout du callback onUpgrade
       onOpen: (db) async {
         // Vérifier si la base est vide et importer le CSV si nécessaire
         final count = await db.rawQuery('SELECT COUNT(*) as count FROM Locations');
@@ -38,6 +45,24 @@ class DatabaseHelper {
         }
       },
     );
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // Créer la table high_scores lors de la mise à jour de version 1 à 2
+      await db.execute('''
+        CREATE TABLE high_scores(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          score INTEGER NOT NULL,
+          game_mode TEXT NOT NULL,
+          difficulty TEXT NOT NULL,
+          map_style TEXT NOT NULL,
+          has_timer INTEGER NOT NULL,
+          time_left INTEGER,
+          played_at INTEGER NOT NULL
+        )
+      ''');
+    }
   }
 
   /// Crée la table Locations
@@ -60,6 +85,22 @@ class DatabaseHelper {
     // Index pour améliorer les performances de recherche
     await db.execute('CREATE INDEX idx_city_country ON Locations(city, country)');
     await db.execute('CREATE INDEX idx_capital ON Locations(capital)');
+
+    // Créer la table high_scores si la version est >= 2
+    if (version >= 2) {
+      await db.execute('''
+        CREATE TABLE high_scores(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          score INTEGER NOT NULL,
+          game_mode TEXT NOT NULL,
+          difficulty TEXT NOT NULL,
+          map_style TEXT NOT NULL,
+          has_timer INTEGER NOT NULL,
+          time_left INTEGER,
+          played_at INTEGER NOT NULL
+        )
+      ''');
+    }
   }
 
   /// Importe les données du CSV dans la base de données
@@ -223,13 +264,6 @@ class DatabaseHelper {
   Future close() async {
     final db = await instance.database;
     db.close();
-  }
-
-  /// Retourne le chemin complet de la base de données
-  /// Utile pour déboguer et accéder à la base avec un outil externe
-  Future<String> getDatabasePath() async {
-    final dbPath = await getDatabasesPath();
-    return join(dbPath, 'mapeo_locations.db');
   }
 
   /// Affiche le chemin de la base de données dans la console

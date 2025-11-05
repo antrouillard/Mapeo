@@ -5,6 +5,7 @@ import 'screens/game_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'services/google_geocoding_service.dart';
 import 'screens/mode_selection_screen.dart';
+import 'screens/high_scores_screen.dart';
 import 'database/database_helper.dart';
 
 void main() async {
@@ -247,6 +248,27 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: const Icon(Icons.flash_on),
               label: const Text('Partie rapide'),
               style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 16,
+                ),
+                textStyle: const TextStyle(fontSize: 16),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Bouton pour accéder aux high scores
+            TextButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const HighScoresScreen()),
+                );
+              },
+              icon: const Icon(Icons.score),
+              label: const Text('Voir les meilleurs scores'),
+              style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 40,
                   vertical: 16,

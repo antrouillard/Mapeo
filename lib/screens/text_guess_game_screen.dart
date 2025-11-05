@@ -4,8 +4,10 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'dart:async';
 import '../services/mapbox_service.dart';
 import '../services/google_geocoding_service.dart';
+import '../services/db_service.dart';
 import '../models/challenge.dart';
 import '../models/game_mode.dart';
+import '../models/high_score.dart';
 
 /// Écran de jeu pour le mode Guess Textuel
 /// Le joueur doit taper le nom du lieu au lieu de cliquer sur la carte
@@ -545,7 +547,12 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
     }
   }
 
-  void _showFinalScore() {
+  void _showFinalScore() async {
+    // Sauvegarder le score dans la base de données
+    await _saveHighScore();
+
+    if (!mounted) return;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -561,6 +568,15 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
             ),
             Text(
               'Moyenne: ${(_currentScore / _maxRounds).toStringAsFixed(0)} pts/round',
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              '✅ Score enregistré !',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.green,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
@@ -587,6 +603,58 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
         ],
       ),
     );
+  }
+
+  /// Sauvegarde le score actuel dans la base de données
+  Future<void> _saveHighScore() async {
+    try {
+      // Créer l'objet HighScore avec toutes les informations de la partie
+      final highScore = HighScore(
+        score: _currentScore,
+        gameMode: 'text_guess',
+        difficulty: _getDifficultyString(widget.config.difficulty),
+        mapStyle: _getMapStyleString(widget.config.mapStyle),
+        hasTimer: widget.config.timerEnabled,
+        timeLeft: widget.config.timerEnabled ? _remainingSeconds : null,
+        playedAt: DateTime.now(),
+      );
+
+      // Sauvegarder dans la base de données
+      await DatabaseService.instance.saveHighScore(highScore);
+
+      print('✅ Score sauvegardé: $_currentScore points');
+    } catch (e) {
+      print('❌ Erreur lors de la sauvegarde du score: $e');
+      // Ne pas bloquer l'utilisateur en cas d'erreur
+    }
+  }
+
+  /// Convertit l'enum Difficulty en String pour la base de données
+  String _getDifficultyString(Difficulty difficulty) {
+    switch (difficulty) {
+      case Difficulty.easy:
+        return 'easy';
+      case Difficulty.medium:
+        return 'medium';
+      case Difficulty.hard:
+        return 'hard';
+    }
+  }
+
+  /// Convertit l'enum MapStyle en String pour la base de données
+  String _getMapStyleString(MapStyle? mapStyle) {
+    if (mapStyle == null) return 'classic';
+
+    switch (mapStyle) {
+      case MapStyle.classic:
+        return 'classic';
+      case MapStyle.blackAndWhite:
+        return 'blackAndWhite';
+      case MapStyle.noBorders:
+        return 'noBorders';
+      case MapStyle.satellite:
+        return 'satellite';
+    }
   }
 
   @override
