@@ -309,6 +309,57 @@ class GoogleGeocodingService {
       });
     }
   }
+
+  /// Géocodage inversé : obtient le nom du pays à partir de coordonnées GPS
+  ///
+  /// [lat] : Latitude
+  /// [lng] : Longitude
+  ///
+  /// Retourne le nom du pays, ou null si non trouvé
+  static Future<String?> reverseGeocode(double lat, double lng) async {
+    // Vérifier que la clé API est configurée
+    if (_apiKey == null || _apiKey!.isEmpty) {
+      throw Exception('GOOGLE_GEOCODING_API_KEY non défini dans .env');
+    }
+
+    // Construire l'URL de l'API Google Geocoding pour le géocodage inversé
+    final url = Uri.parse(
+      'https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$lng&key=${_apiKey!}'
+    );
+
+    try {
+      // Effectuer la requête HTTP
+      final resp = await http.get(url);
+      if (resp.statusCode != 200) {
+        throw Exception('Erreur réseau: ${resp.statusCode}');
+      }
+
+      // Parser la réponse JSON
+      final Map<String, dynamic> json = jsonDecode(resp.body);
+
+      // Vérifier que la requête a réussi et qu'il y a des résultats
+      if (json['status'] != 'OK' || (json['results'] as List).isEmpty) {
+        return null;
+      }
+
+      // Parcourir les résultats pour trouver le pays
+      for (var result in json['results']) {
+        final addressComponents = result['address_components'] as List;
+
+        for (var component in addressComponents) {
+          final types = component['types'] as List;
+          if (types.contains('country')) {
+            return component['long_name'] as String;
+          }
+        }
+      }
+
+      return null;
+    } catch (e) {
+      print('Erreur lors du géocodage inversé: $e');
+      return null;
+    }
+  }
 }
 
 /// Classe pour stocker les résultats détaillés du géocodage

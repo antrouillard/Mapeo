@@ -125,4 +125,30 @@ class MapboxService {
   static setMapboxToken() {
     MapboxOptions.setAccessToken(ACCESS_TOKEN);
   }
+
+  /// Obtient les coordonnées des frontières d'un pays
+  ///
+  /// Utilise l'API Mapbox Geocoding pour obtenir les contours d'un pays
+  ///
+  /// [countryName] : Nom du pays en anglais
+  ///
+  /// Retourne une liste de positions formant le polygone du pays, ou null si non trouvé
+  static Future<Polygon?> getCountryBorders(String countryName) async {
+    try {
+      // Utiliser l'API Mapbox Geocoding pour obtenir les informations du pays
+      final encodedCountry = Uri.encodeComponent(countryName);
+      final url = 'https://api.mapbox.com/geocoding/v5/mapbox.places/$encodedCountry.json'
+          '?types=country&access_token=$ACCESS_TOKEN';
+
+      // Note: Pour obtenir les vrais polygones des pays, il faudrait utiliser
+      // une source de données GeoJSON comme Natural Earth ou REST Countries API
+      // Pour l'instant, on retourne null et on affichera juste un point
+
+      print('⚠️ getCountryBorders: Fonctionnalité des frontières non encore implémentée');
+      return null;
+    } catch (e) {
+      print('Erreur lors de la récupération des frontières: $e');
+      return null;
+    }
+  }
 }

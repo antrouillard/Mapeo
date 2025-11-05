@@ -276,6 +276,10 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen> {
                     _selectedMapHint = _selectedMapHint == MapHint.capitalFlag
                         ? null
                         : MapHint.capitalFlag;
+                    // Mode Capitale/Drapeau : forcer la difficulté sur Facile
+                    if (_selectedMapHint == MapHint.capitalFlag) {
+                      _selectedDifficulty = Difficulty.easy;
+                    }
                   });
                 },
               ),
@@ -495,9 +499,11 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen> {
     required Color color,
   }) {
     final isSelected = _selectedDifficulty == difficulty;
+    // Désactiver les difficultés autres que Facile en mode Capitale/Drapeau
+    final isDisabled = _selectedMapHint == MapHint.capitalFlag && difficulty != Difficulty.easy;
 
     return GestureDetector(
-      onTap: () {
+      onTap: isDisabled ? null : () {
         setState(() {
           _selectedDifficulty = difficulty;
         });
@@ -505,9 +511,13 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.15) : Colors.white,
+          color: isDisabled
+              ? Colors.grey[200]
+              : (isSelected ? color.withOpacity(0.15) : Colors.white),
           border: Border.all(
-            color: isSelected ? color : Colors.grey[300]!,
+            color: isDisabled
+                ? Colors.grey[300]!
+                : (isSelected ? color : Colors.grey[300]!),
             width: isSelected ? 2.5 : 1,
           ),
           borderRadius: BorderRadius.circular(12),
@@ -520,7 +530,9 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen> {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: isSelected ? color : Colors.black87,
+                color: isDisabled
+                    ? Colors.grey[400]
+                    : (isSelected ? color : Colors.black87),
               ),
               textAlign: TextAlign.center,
             ),
@@ -529,13 +541,17 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen> {
               subtitle,
               style: TextStyle(
                 fontSize: 11,
-                color: Colors.grey[600],
+                color: isDisabled ? Colors.grey[400] : Colors.grey[600],
               ),
               textAlign: TextAlign.center,
             ),
-            if (isSelected) ...[
+            if (isSelected && !isDisabled) ...[
               const SizedBox(height: 6),
               Icon(Icons.check_circle, color: color, size: 18),
+            ],
+            if (isDisabled) ...[
+              const SizedBox(height: 6),
+              Icon(Icons.lock, color: Colors.grey[400], size: 18),
             ],
           ],
         ),
