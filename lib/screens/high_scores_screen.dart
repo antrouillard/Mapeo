@@ -74,225 +74,269 @@ class _HighScoresScreenState extends State<HighScoresScreen> {
 
   /// Affiche une boîte de dialogue pour sélectionner les filtres
   void _showFilterDialog() {
+    // Variables locales pour les filtres temporaires
+    String? tempGameMode = _selectedGameMode;
+    String? tempDifficulty = _selectedDifficulty;
+    String? tempMapStyle = _selectedMapStyle;
+    bool? tempTimerMode = _selectedTimerMode;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Filtrer les scores'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Mode de jeu',
-                style: TextStyle(fontWeight: FontWeight.bold),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Filtrer les scores'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Mode de jeu',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      FilterChip(
+                        label: const Text('Tous'),
+                        selected: tempGameMode == null,
+                        onSelected: (selected) {
+                          setDialogState(() {
+                            tempGameMode = null;
+                          });
+                        },
+                      ),
+                      FilterChip(
+                        label: const Text('Dis où tu es'),
+                        selected: tempGameMode == 'text_guess',
+                        onSelected: (selected) {
+                          setDialogState(() {
+                            tempGameMode = selected ? 'text_guess' : null;
+                          });
+                        },
+                      ),
+                      FilterChip(
+                        label: const Text('Trouve sur la Carte'),
+                        selected: tempGameMode == 'map_guess',
+                        onSelected: (selected) {
+                          setDialogState(() {
+                            tempGameMode = selected ? 'map_guess' : null;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Difficulté',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      FilterChip(
+                        label: const Text('Tous'),
+                        selected: tempDifficulty == null,
+                        onSelected: (selected) {
+                          setDialogState(() {
+                            tempDifficulty = null;
+                          });
+                        },
+                      ),
+                      FilterChip(
+                        label: const Text('Facile'),
+                        selected: tempDifficulty == 'easy',
+                        onSelected: (selected) {
+                          setDialogState(() {
+                            tempDifficulty = selected ? 'easy' : null;
+                          });
+                        },
+                      ),
+                      FilterChip(
+                        label: const Text('Moyen'),
+                        selected: tempDifficulty == 'medium',
+                        onSelected: (selected) {
+                          setDialogState(() {
+                            tempDifficulty = selected ? 'medium' : null;
+                          });
+                        },
+                      ),
+                      FilterChip(
+                        label: const Text('Difficile'),
+                        selected: tempDifficulty == 'hard',
+                        onSelected: (selected) {
+                          setDialogState(() {
+                            tempDifficulty = selected ? 'hard' : null;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Style de carte / Indices',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const Text(
+                    'Pour "Devine la Ville" et "Cherche sur la Carte"',
+                    style: TextStyle(fontSize: 11, color: Colors.grey, fontStyle: FontStyle.italic),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      FilterChip(
+                        label: const Text('Tous'),
+                        selected: tempMapStyle == null,
+                        onSelected: (selected) {
+                          setDialogState(() {
+                            tempMapStyle = null;
+                          });
+                        },
+                      ),
+                      // Styles pour Dis où tu es
+                      FilterChip(
+                        label: const Text('Classique'),
+                        selected: tempMapStyle == 'classic',
+                        onSelected: (selected) {
+                          setDialogState(() {
+                            tempMapStyle = selected ? 'classic' : null;
+                          });
+                        },
+                      ),
+                      FilterChip(
+                        label: const Text('N&B'),
+                        selected: tempMapStyle == 'blackAndWhite',
+                        onSelected: (selected) {
+                          setDialogState(() {
+                            tempMapStyle = selected ? 'blackAndWhite' : null;
+                          });
+                        },
+                      ),
+                      FilterChip(
+                        label: const Text('Sans frontières'),
+                        selected: tempMapStyle == 'noBorders',
+                        onSelected: (selected) {
+                          setDialogState(() {
+                            tempMapStyle = selected ? 'noBorders' : null;
+                          });
+                        },
+                      ),
+                      FilterChip(
+                        label: const Text('Satellite'),
+                        selected: tempMapStyle == 'satellite',
+                        onSelected: (selected) {
+                          setDialogState(() {
+                            tempMapStyle = selected ? 'satellite' : null;
+                          });
+                        },
+                      ),
+                      // Map Hints pour Map Guess
+                      FilterChip(
+                        label: const Text('Standard'),
+                        selected: tempMapStyle == 'standard',
+                        onSelected: (selected) {
+                          setDialogState(() {
+                            tempMapStyle = selected ? 'standard' : null;
+                          });
+                        },
+                      ),
+                      FilterChip(
+                        label: const Text('🌦️ Météo/Climat'),
+                        selected: tempMapStyle == 'weatherClimate',
+                        onSelected: (selected) {
+                          setDialogState(() {
+                            tempMapStyle = selected ? 'weatherClimate' : null;
+                          });
+                        },
+                      ),
+                      FilterChip(
+                        label: const Text('🏛️ Capitale/Drapeau'),
+                        selected: tempMapStyle == 'capitalFlag',
+                        onSelected: (selected) {
+                          setDialogState(() {
+                            tempMapStyle = selected ? 'capitalFlag' : null;
+                          });
+                        },
+                      ),
+                      FilterChip(
+                        label: const Text('📍 Coordonnées'),
+                        selected: tempMapStyle == 'coordinates',
+                        onSelected: (selected) {
+                          setDialogState(() {
+                            tempMapStyle = selected ? 'coordinates' : null;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Mode timer',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      FilterChip(
+                        label: const Text('Tous'),
+                        selected: tempTimerMode == null,
+                        onSelected: (selected) {
+                          setDialogState(() {
+                            tempTimerMode = null;
+                          });
+                        },
+                      ),
+                      FilterChip(
+                        label: const Text('Avec timer'),
+                        selected: tempTimerMode == true,
+                        onSelected: (selected) {
+                          setDialogState(() {
+                            tempTimerMode = selected ? true : null;
+                          });
+                        },
+                      ),
+                      FilterChip(
+                        label: const Text('Sans timer'),
+                        selected: tempTimerMode == false,
+                        onSelected: (selected) {
+                          setDialogState(() {
+                            tempTimerMode = selected ? false : null;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              _buildGameModeFilter(),
-              const SizedBox(height: 16),
-              const Text(
-                'Difficulté',
-                style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _resetFilters();
+                },
+                child: const Text('Réinitialiser'),
               ),
-              _buildDifficultyFilter(),
-              const SizedBox(height: 16),
-              const Text(
-                'Style de carte',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              ElevatedButton(
+                onPressed: () {
+                  // Appliquer les filtres temporaires aux filtres réels
+                  setState(() {
+                    _selectedGameMode = tempGameMode;
+                    _selectedDifficulty = tempDifficulty;
+                    _selectedMapStyle = tempMapStyle;
+                    _selectedTimerMode = tempTimerMode;
+                  });
+                  Navigator.of(context).pop();
+                  _loadHighScores();
+                },
+                child: const Text('Appliquer'),
               ),
-              _buildMapStyleFilter(),
-              const SizedBox(height: 16),
-              const Text(
-                'Mode timer',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              _buildTimerModeFilter(),
             ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _resetFilters();
-            },
-            child: const Text('Réinitialiser'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _loadHighScores();
-            },
-            child: const Text('Appliquer'),
-          ),
-        ],
+          );
+        },
       ),
-    );
-  }
-
-  Widget _buildGameModeFilter() {
-    return Wrap(
-      spacing: 8,
-      children: [
-        FilterChip(
-          label: const Text('Tous'),
-          selected: _selectedGameMode == null,
-          onSelected: (selected) {
-            setState(() {
-              _selectedGameMode = null;
-            });
-          },
-        ),
-        FilterChip(
-          label: const Text('Text Guess'),
-          selected: _selectedGameMode == 'text_guess',
-          onSelected: (selected) {
-            setState(() {
-              _selectedGameMode = selected ? 'text_guess' : null;
-            });
-          },
-        ),
-        FilterChip(
-          label: const Text('Map Guess'),
-          selected: _selectedGameMode == 'map_guess',
-          onSelected: (selected) {
-            setState(() {
-              _selectedGameMode = selected ? 'map_guess' : null;
-            });
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDifficultyFilter() {
-    return Wrap(
-      spacing: 8,
-      children: [
-        FilterChip(
-          label: const Text('Tous'),
-          selected: _selectedDifficulty == null,
-          onSelected: (selected) {
-            setState(() {
-              _selectedDifficulty = null;
-            });
-          },
-        ),
-        FilterChip(
-          label: const Text('Facile'),
-          selected: _selectedDifficulty == 'easy',
-          onSelected: (selected) {
-            setState(() {
-              _selectedDifficulty = selected ? 'easy' : null;
-            });
-          },
-        ),
-        FilterChip(
-          label: const Text('Moyen'),
-          selected: _selectedDifficulty == 'medium',
-          onSelected: (selected) {
-            setState(() {
-              _selectedDifficulty = selected ? 'medium' : null;
-            });
-          },
-        ),
-        FilterChip(
-          label: const Text('Difficile'),
-          selected: _selectedDifficulty == 'hard',
-          onSelected: (selected) {
-            setState(() {
-              _selectedDifficulty = selected ? 'hard' : null;
-            });
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMapStyleFilter() {
-    return Wrap(
-      spacing: 8,
-      children: [
-        FilterChip(
-          label: const Text('Tous'),
-          selected: _selectedMapStyle == null,
-          onSelected: (selected) {
-            setState(() {
-              _selectedMapStyle = null;
-            });
-          },
-        ),
-        FilterChip(
-          label: const Text('Classic'),
-          selected: _selectedMapStyle == 'classic',
-          onSelected: (selected) {
-            setState(() {
-              _selectedMapStyle = selected ? 'classic' : null;
-            });
-          },
-        ),
-        FilterChip(
-          label: const Text('N&B'),
-          selected: _selectedMapStyle == 'blackAndWhite',
-          onSelected: (selected) {
-            setState(() {
-              _selectedMapStyle = selected ? 'blackAndWhite' : null;
-            });
-          },
-        ),
-        FilterChip(
-          label: const Text('Sans frontières'),
-          selected: _selectedMapStyle == 'noBorders',
-          onSelected: (selected) {
-            setState(() {
-              _selectedMapStyle = selected ? 'noBorders' : null;
-            });
-          },
-        ),
-        FilterChip(
-          label: const Text('Satellite'),
-          selected: _selectedMapStyle == 'satellite',
-          onSelected: (selected) {
-            setState(() {
-              _selectedMapStyle = selected ? 'satellite' : null;
-            });
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTimerModeFilter() {
-    return Wrap(
-      spacing: 8,
-      children: [
-        FilterChip(
-          label: const Text('Tous'),
-          selected: _selectedTimerMode == null,
-          onSelected: (selected) {
-            setState(() {
-              _selectedTimerMode = null;
-            });
-          },
-        ),
-        FilterChip(
-          label: const Text('Avec timer'),
-          selected: _selectedTimerMode == true,
-          onSelected: (selected) {
-            setState(() {
-              _selectedTimerMode = selected ? true : null;
-            });
-          },
-        ),
-        FilterChip(
-          label: const Text('Sans timer'),
-          selected: _selectedTimerMode == false,
-          onSelected: (selected) {
-            setState(() {
-              _selectedTimerMode = selected ? false : null;
-            });
-          },
-        ),
-      ],
     );
   }
 
@@ -300,9 +344,9 @@ class _HighScoresScreenState extends State<HighScoresScreen> {
   String _getGameModeText(String gameMode) {
     switch (gameMode) {
       case 'text_guess':
-        return 'Text Guess';
+        return 'Dis où tu es';
       case 'map_guess':
-        return 'Map Guess';
+        return 'Trouve sur la Carte';
       default:
         return gameMode;
     }
@@ -326,13 +370,22 @@ class _HighScoresScreenState extends State<HighScoresScreen> {
   String _getMapStyleText(String mapStyle) {
     switch (mapStyle) {
       case 'classic':
-        return 'Classic';
+        return 'Classique';
       case 'blackAndWhite':
         return 'Noir & Blanc';
       case 'noBorders':
         return 'Sans frontières';
       case 'satellite':
         return 'Satellite';
+      // Indices pour Trouve sur la Carte
+      case 'standard':
+        return 'Standard';
+      case 'weatherClimate':
+        return '🌦️ Météo/Climat';
+      case 'capitalFlag':
+        return '🏛️ Capitale/Drapeau';
+      case 'coordinates':
+        return '📍 Coordonnées';
       default:
         return mapStyle;
     }

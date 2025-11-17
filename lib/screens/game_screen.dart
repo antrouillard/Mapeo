@@ -10,6 +10,8 @@ import '../database/database_helper.dart';
 import '../models/challenge.dart';
 import '../models/game_mode.dart';
 import '../models/high_score.dart';
+import '../widgets/victory_animation.dart';
+import '../widgets/defeat_animation.dart';
 
 /// Écran de jeu pour le mode Guess sur Map
 /// Le joueur voit le nom de la ville/pays et doit cliquer sur la carte
@@ -465,54 +467,105 @@ class _GameScreenState extends State<GameScreen> {
 
     if (!mounted) return;
 
+    final isVictory = _currentScore >= 3500;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Partie terminée !'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.emoji_events, size: 64, color: Colors.amber),
-            const SizedBox(height: 20),
-            Text(
-              'Score total: $_currentScore',
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+      barrierDismissible: false,
+      barrierColor: Colors.transparent,
+      builder: (context) => Material(
+        type: MaterialType.transparency,
+        child: isVictory
+            ? VictoryAnimation(
+                child: _buildEndGameDialog(isVictory: true),
+              )
+            : DefeatAnimation(
+                child: _buildEndGameDialog(isVictory: false),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildEndGameDialog({required bool isVictory}) {
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(
+            isVictory ? Icons.emoji_events : Icons.sentiment_dissatisfied,
+            color: isVictory ? Colors.amber : Colors.grey,
+            size: 32,
+          ),
+          const SizedBox(width: 12),
+          Text(isVictory ? 'Victoire !' : 'Partie terminée'),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isVictory ? Icons.emoji_events : Icons.trending_down,
+            size: 64,
+            color: isVictory ? Colors.amber : Colors.grey,
+          ),
+          const SizedBox(height: 20),
+          Text(
+            isVictory ? 'Félicitations !' : 'Continuez à vous entraîner !',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: isVictory ? Colors.green : Colors.orange,
             ),
-            Text(
-              'Moyenne: ${(_currentScore / _maxRounds).toStringAsFixed(0)} pts/round',
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Score total: $_currentScore',
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          Text(
+            'Moyenne: ${(_currentScore / _maxRounds).toStringAsFixed(0)} pts/round',
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            '✅ Score enregistré !',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.green,
+              fontWeight: FontWeight.w600,
             ),
-            const SizedBox(height: 10),
-            const Text(
-              '✅ Score enregistré !',
+          ),
+          if (isVictory) ...[
+            const SizedBox(height: 12),
+            Text(
+              '🎉 Plus de 3500 points !',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.green,
-                fontWeight: FontWeight.w600,
+                color: Colors.amber.shade700,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop();
-            },
-            child: const Text('Retour au menu'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              setState(() {
-                _roundNumber = 1;
-                _currentScore = 0;
-              });
-              _loadNewChallenge();
-            },
-            child: const Text('Rejouer'),
-          ),
         ],
       ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+            Navigator.of(context).pop();
+          },
+          child: const Text('Retour au menu'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+            setState(() {
+              _roundNumber = 1;
+              _currentScore = 0;
+            });
+            _loadNewChallenge();
+          },
+          child: const Text('Rejouer'),
+        ),
+      ],
     );
   }
 
@@ -569,7 +622,7 @@ class _GameScreenState extends State<GameScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Mapeo Map Guess - Round $_roundNumber/$_maxRounds'),
+        title: Text(' Trouve sur la Carte $_roundNumber/$_maxRounds', style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.05)),
         actions: [
           Padding(
             padding: const EdgeInsets.all(16.0),

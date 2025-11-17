@@ -61,8 +61,8 @@ class GameConfiguration {
   /// Retourne une description lisible de la configuration
   String get description {
     String desc = guessType == GuessType.map
-        ? 'Guess sur carte'
-        : 'Guess textuel';
+        ? 'Trouve sur la Carte'
+        : 'Dis où tu es';
 
     if (guessType == GuessType.map && mapHint != null) {
       switch (mapHint!) {

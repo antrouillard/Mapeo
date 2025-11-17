@@ -61,7 +61,7 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen> {
                 Expanded(
                   child: _buildGuessTypeCard(
                     type: GuessType.map,
-                    title: 'Guess sur Map',
+                    title: 'Trouve sur la carte',
                     description: 'Clique sur la carte',
                     icon: Icons.map,
                     color: Colors.blue,
@@ -71,7 +71,7 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen> {
                 Expanded(
                   child: _buildGuessTypeCard(
                     type: GuessType.text,
-                    title: 'Guess Textuel',
+                    title: 'Dis où tu es',
                     description: 'Tape le nom du lieu',
                     icon: Icons.text_fields,
                     color: Colors.green,
@@ -720,10 +720,10 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen> {
     Widget gameScreen;
 
     if (config.guessType == GuessType.text) {
-      // Mode Guess Textuel
+      // Mode Dis où tu es
       gameScreen = TextGuessGameScreen(config: config);
     } else {
-      // Mode Guess sur Map (pour l'instant utilise l'écran existant)
+      // Mode Trouve sur la Carte
       gameScreen = GameScreen(config: config);
     }
 
