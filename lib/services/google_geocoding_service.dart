@@ -42,7 +42,7 @@ class GoogleGeocodingService {
     final encoded = Uri.encodeQueryComponent(address);
 
     // Construire l'URL de l'API Google Geocoding
-    final url = Uri.parse('https://maps.googleapis.com/maps/api/geocode/json?address=$encoded&key=${_apiKey!}');
+    final url = Uri.parse('https://maps.googleapis.com/maps/api/geocode/json?address=$encoded&key=${_apiKey!}&language=fr');
 
     // Effectuer la requête HTTP
     final resp = await http.get(url);
@@ -112,7 +112,7 @@ class GoogleGeocodingService {
     final encoded = Uri.encodeQueryComponent(address);
 
     // Construire l'URL de l'API Google Geocoding
-    final url = Uri.parse('https://maps.googleapis.com/maps/api/geocode/json?address=$encoded&key=${_apiKey!}');
+    final url = Uri.parse('https://maps.googleapis.com/maps/api/geocode/json?address=$encoded&key=${_apiKey!}&language=fr');
 
     // Effectuer la requête HTTP
     final resp = await http.get(url);
@@ -324,7 +324,7 @@ class GoogleGeocodingService {
 
     // Construire l'URL de l'API Google Geocoding pour le géocodage inversé
     final url = Uri.parse(
-      'https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$lng&key=${_apiKey!}'
+      'https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$lng&key=${_apiKey!}&language=fr'
     );
 
     try {

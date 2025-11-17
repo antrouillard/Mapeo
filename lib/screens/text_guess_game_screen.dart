@@ -26,6 +26,7 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
 
   // Gestionnaire des marqueurs (annotations)
   PointAnnotationManager? _annotationManager;
+  CircleAnnotationManager? _circleAnnotationManager;
 
   // Défi actuel (lieu à deviner)
   Challenge? _currentChallenge;
@@ -48,6 +49,9 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
   // Références aux annotations
   PointAnnotation? _guessAnnotation;
   PointAnnotation? _correctAnnotation;
+  CircleAnnotation? _targetCircleAnnotation;
+  CircleAnnotation? _guessCircleAnnotation;
+  CircleAnnotation? _correctCircleAnnotation;
 
   // État du géocodage
   bool _isGeocoding = false;
@@ -174,12 +178,24 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
         iconColor: Colors.red.toARGB32(),
       ),
     );
+
+    // Ajouter un cercle cible au bon endroit (révélation de la réponse)
+    _targetCircleAnnotation = await _circleAnnotationManager!.create(
+      CircleAnnotationOptions(
+        geometry: challengePoint,
+        circleRadius: 10.0,
+        circleColor: Colors.red.withOpacity(0.3).toARGB32(),
+        circleStrokeColor: Colors.red.toARGB32(),
+        circleStrokeWidth: 2.0,
+      ),
+    );
   }
 
   /// Callback appelé quand la carte est créée
   void _onMapCreated(MapboxMap mapboxMap) async {
     _mapboxMap = mapboxMap;
     _annotationManager = await mapboxMap.annotations.createPointAnnotationManager();
+    _circleAnnotationManager = await mapboxMap.annotations.createCircleAnnotationManager();
 
     // Ajouter le marqueur du challenge maintenant que l'annotationManager est prêt
     if (_currentChallenge != null) {
@@ -409,6 +425,17 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
         iconColor: Colors.green.toARGB32(),
       ),
     );
+
+    // Ajouter un cercle vert au bon endroit (révélation de la réponse)
+    _correctCircleAnnotation = await _circleAnnotationManager!.create(
+      CircleAnnotationOptions(
+        geometry: correctPoint,
+        circleRadius: 10.0,
+        circleColor: Colors.green.withOpacity(0.3).toARGB32(),
+        circleStrokeColor: Colors.green.toARGB32(),
+        circleStrokeWidth: 2.0,
+      ),
+    );
   }
 
   void _showResultDialog(double distance, int score) {
@@ -425,100 +452,69 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // En mode EASY, afficher d'abord si le pays est correct
-            if (isEasyMode) ...[
-              Icon(
-                isCountryCorrect ? Icons.check_circle : Icons.cancel,
-                size: 64,
-                color: isCountryCorrect ? Colors.green : Colors.red,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                isCountryCorrect ? '🎉 Bon pays !' : '❌ Mauvais pays',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: isCountryCorrect ? Colors.green : Colors.red,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Pays géocodé: $_guessedCountry',
-                style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Pays correct: ${_currentChallenge!.correctCountry}',
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-              ),
-              if (!isCountryCorrect && distance > 0) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Distance entre les pays: ${distance.toStringAsFixed(0)} km',
-                  style: TextStyle(fontSize: 13, color: Colors.grey[700]),
-                ),
-              ],
-            ] else ...[
-              // Mode normal : afficher la distance
-              Text(
-                'Vous étiez à ${distance.toStringAsFixed(1)} km !',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ],
-            const SizedBox(height: 10),
+            // Icône de résultat
+            Icon(
+              isCountryCorrect || score >= 500 ? Icons.check_circle : Icons.cancel,
+              size: 64,
+              color: isCountryCorrect || score >= 500 ? Colors.green : Colors.red,
+            ),
+            const SizedBox(height: 16),
+
+            // Réponse du joueur
             Text(
-              'Score: $score points',
+              'Votre réponse :',
+              style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              isEasyMode
+                ? _guessedCountry // En mode facile, afficher le pays géocodé
+                : _guessController.text.trim(), // En mode normal, afficher la saisie
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+
+            const SizedBox(height: 16),
+
+            // Réponse attendue (selon le mode)
+            Text(
+              'Réponse attendue :',
+              style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              isEasyMode
+                ? _currentChallenge!.correctCountry // En mode facile, afficher le pays correct
+                : '${_currentChallenge!.correctCity}', // En mode normal, afficher la ville correcte
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
+              textAlign: TextAlign.center,
+            ),
+
+            const SizedBox(height: 16),
+
+            // Distance
+            if (distance > 0) ...[
+              Text(
+                'Distance :',
+                style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${distance.toStringAsFixed(1)} km',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // Score
+            Text(
+              'Score : $score points',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: score >= 500 ? Colors.green : Colors.orange,
               ),
             ),
-            const SizedBox(height: 10),
-            Text(
-              'Réponse: ${_currentChallenge!.correctCity}, '
-              '${_currentChallenge!.correctCountry}',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontStyle: FontStyle.italic),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Votre réponse: "${_guessController.text}"',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey[700],
-              ),
-            ),
-            if (!isEasyMode) ...[
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 20,
-                    height: 20,
-                    decoration: const BoxDecoration(
-                      color: Colors.blue,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Text('Votre réponse', style: TextStyle(fontSize: 12)),
-                  const SizedBox(width: 20),
-                  Container(
-                    width: 20,
-                    height: 20,
-                    decoration: const BoxDecoration(
-                      color: Colors.green,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Text('Réponse correcte', style: TextStyle(fontSize: 12)),
-                ],
-              ),
-            ],
           ],
         ),
         actions: [
@@ -690,6 +686,18 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
                         key: ValueKey(_currentChallenge),
                         styleUri: _getMapStyleUri(),
                         onMapCreated: _onMapCreated,
+                      ),
+                      // Bouton pour revenir à l'origine (centrer sur le point cible)
+                      Positioned(
+                        bottom: 16,
+                        right: 16,
+                        child: FloatingActionButton(
+                          mini: true,
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.blue,
+                          onPressed: _centerMapOnChallenge,
+                          child: const Icon(Icons.my_location),
+                        ),
                       ),
                       if (_timerEnabled && !_hasGuessed)
                         Positioned(
