@@ -153,7 +153,13 @@ class _TextGuessGameScreenState extends State<TextGuessGameScreen> {
           title: const Text('Temps écoulé !'),
           content: const Text('Vous n\'avez pas répondu à temps. 0 point pour ce round.'),
           actions: [
-            TextButton(onPressed: _nextRound, child: const Text('Round suivant')),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Fermer d'abord la popup du timer
+                _nextRound(); // Puis passer au round suivant
+              },
+              child: const Text('Round suivant'),
+            ),
           ],
         ),
       );

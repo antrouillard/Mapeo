@@ -202,7 +202,13 @@ class _GameScreenState extends State<GameScreen> {
           title: const Text('Temps écoulé !'),
           content: const Text('Vous n\'avez pas répondu à temps. 0 point pour ce round.'),
           actions: [
-            TextButton(onPressed: _nextRound, child: const Text('Round suivant')),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Fermer d'abord la popup du timer
+                _nextRound(); // Puis passer au round suivant
+              },
+              child: const Text('Round suivant'),
+            ),
           ],
         ),
       );
@@ -622,7 +628,7 @@ class _GameScreenState extends State<GameScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(' Trouve sur la Carte $_roundNumber/$_maxRounds', style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.05)),
+        title: Text(' Trouve sur la Carte $_roundNumber/$_maxRounds', style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.0445)),
         actions: [
           Padding(
             padding: const EdgeInsets.all(16.0),

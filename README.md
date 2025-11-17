@@ -1,41 +1,25 @@
-# mapeo
+# Mapeo
 
-Flutter project with MapBox usage
+Mapeo est un projet d'application ludique permettant de s'exercer à la géographie tout en s'amusant. 
+L'application propose des quiz interactifs, des cartes à explorer et des défis géographiques pour aider les utilisateurs à améliorer leurs connaissances sur les pays, les capitales, les drapeaux et bien plus encore.
 
-## Getting Started
+# Fonctionnalités
+- Défis géographiques pour tester vos connaissances
+- Différents niveaux de difficulté
+- Différents styles de cartes et modes de jeux
+- Sauvegarde des scores
 
-This project is a starting point for a Flutter application.
+# Installation
+Ajoutez un .env fichier à la racine du projet avec les variables d'environnement nécessaires : 
+- MAPBOX_ACCESS_TOKEN, 
+- GOOGLE_MAPS_API_KEY, 
+- GOOGLE_GEOCODING_API_KEY 
+- OPENWEATHERMAP_API_KEY.
 
-A few resources to get you started if this is your first Flutter project:
+Ensuite, flutter run pour lancer l'application. 
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+# Projet créé par :
+Antoine Rouillard et Adam Kaoukeb
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
 
-## TODO: 
 
-lib/
-├── main.dart
-├── models/
-│   ├── game_session.dart          # Session de jeu en cours
-│   ├── (DONE) challenge.dart      # Données d'un défi
-│   └── user_score.dart            # Historique des scores
-├── services/
-│   ├── (DONE)mapbox_service.dart  # Gestion MapBox
-│   ├── location_api_service.dart  # API externe (géocodage)
-│   └── (DONE) db_service.dart     # SQLite/Hive pour persistance DONE
-├── screens/
-│   ├── home_screen.dart           # Menu principal
-│   ├── (DONE) game_screen.dart    # Écran de jeu principal
-│   ├── result_screen.dart         # Résultats avec animation
-│   └── history_screen.dart        # Historique des parties
-├── widgets/
-│   ├── map_widget.dart            # Widget carte personnalisé
-│   ├── guess_input.dart           # Input pour deviner
-│   └── score_animation.dart       # Animation du score
-└── utils/
-├── constants.dart             # Clés API, constantes
-└── score_calculator.dart      # Calcul de distance/points
