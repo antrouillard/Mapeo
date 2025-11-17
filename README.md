@@ -10,6 +10,10 @@ L'application propose des quiz interactifs, des cartes à explorer et des défis
 - Sauvegarde des scores
 
 # Installation
+Option 1 : 
+Installez le app-release.apk sur votre téléphone android. 
+
+Option 2: 
 Ajoutez un .env fichier à la racine du projet avec les variables d'environnement nécessaires : 
 - MAPBOX_ACCESS_TOKEN, 
 - GOOGLE_MAPS_API_KEY, 
